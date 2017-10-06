@@ -9,16 +9,23 @@ namespace SCPuzzle
 	{
 		private IGrid _grid;
 		private GameObject _gameObject;
-
-		public GridObject(GameObject gameObject, IGrid grid)
+		private Action<Vector3> _onDestroy;
+		public GridObject(GameObject gameObject, IGrid grid, Action<Vector3> onDestroy)
 		{
 			_gameObject = gameObject;
+			_gameObject.transform.localPosition = Vector3.back*100500;
 			_grid = grid;
+			_onDestroy = onDestroy;
 		}
 
 		public IGrid Grid 
 		{
 			get{ return _grid; }
+		}
+
+		public GameObject GameObject 
+		{
+			get{ return _gameObject; }
 		}
 
 		/*public string GetName()
@@ -67,5 +74,15 @@ namespace SCPuzzle
 				return _gameObject.GetComponent<T>();
 			return base.GetProperty<T>();
 		}
+
+		public void Destroy()
+		{
+			if(_onDestroy != null)
+				_onDestroy (GridPos);
+			Grid.RemoveObject (GridPos, this);
+			GameObject.Destroy(_gameObject);
+		}
+
+
 	}
 }

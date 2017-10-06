@@ -53,11 +53,11 @@ namespace SCPuzzle
 		{
 			if (isWorkPlace) 
 			{
-				UnityEditor.Handles.Label (pos + Vector3.down * 0.7f, User ? "uw" : "w");
+				UnityEditor.Handles.Label (pos + Vector3.down * 0.7f, User!=null ? "uw" : "w");
 			} 
 			else if (isTeleportPlace) 
 			{
-				UnityEditor.Handles.Label (pos + Vector3.down * 0.7f, User ? "ut" : "t");
+				UnityEditor.Handles.Label (pos + Vector3.down * 0.7f, User!=null ? "ut" : "t");
 			}
 		}
 #endif

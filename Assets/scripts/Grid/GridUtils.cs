@@ -7,11 +7,17 @@ namespace SCPuzzle
 	public class GridUtils  
 	{
 		protected PathFinder _finder = new PathFinder();
-		private List<Vector3> _nearCellsCache = new List<Vector3>(){Vector3.left, Vector3.right, Vector3.forward, Vector3.back};
-		private List<Vector3> _aroundCellsCache = new List<Vector3>(){Vector3.left, Vector3.right, Vector3.forward, Vector3.back,
-			Vector3.left+Vector3.forward, Vector3.right+Vector3.forward, Vector3.left+Vector3.back, Vector3.right+Vector3.back};	
+		private List<Vector3> _nearCellsCache = new List<Vector3>(){Vector3.left, Vector3.right, Vector3.up, Vector3.down};
+		private List<Vector3> _aroundCellsCache = new List<Vector3>(){Vector3.left, Vector3.right, Vector3.up, Vector3.down,
+			Vector3.left+Vector3.up, Vector3.right+Vector3.up, Vector3.left+Vector3.down, Vector3.right+Vector3.down};	
 		private float cellSize = 100;
 		private int cellsNumber = 5;
+		private Vector3 centerOffset = new Vector3(2,2,0);
+
+		public bool IsInside(Vector3 pos)
+		{
+			return pos.x >= 0 && pos.x < cellsNumber && pos.y >= 0 && pos.y < cellsNumber;
+		}
 
 		public PathFinder PathFinder
 		{
@@ -35,12 +41,12 @@ namespace SCPuzzle
 
 		public Vector3 WorldPosToGridPos(Vector3 worldPos)//snapped
 		{
-			return SnapToGrid(worldPos/cellSize+Vector3.one*(int)(cellsNumber/2));
+			return SnapToGrid(worldPos/cellSize+centerOffset);
 		}
 
 		public Vector3 GridPosToWorldPos(Vector3 gridPos)
 		{
-			return (gridPos-Vector3.one*(int)(cellsNumber/2))*cellSize;
+			return (gridPos-centerOffset)*cellSize;
 		}
 
 		public Vector3 MousePosToScreenPos(Vector3 mousePos)
@@ -49,30 +55,17 @@ namespace SCPuzzle
 			return mousePos;
 		}
 
-		public Vector3 MousePosToWorldPos(Vector3 mousePos, float level, bool forEditor)
+		public Vector3 MousePosToWorldPos(Vector3 mousePos)
 		{			
-			if (forEditor) 
-			{
-				mousePos.y = Screen.height - (mousePos.y+30);
-			}
-			else
-			{
-				mousePos.y -= 10;
-			}
-			Camera camera = forEditor ? Camera.current : Camera.main;
-			Ray ray = camera.ScreenPointToRay(mousePos);
-			float k = (level-ray.origin.y)/ray.direction.normalized.y;
-			return ray.origin+k*ray.direction.normalized;
+			return new Vector3 (mousePos.x / Screen.width-0.5f, 
+				(mousePos.y / Screen.height-0.5f)*Screen.height/Screen.width, 
+				0)*cellSize*cellsNumber;
 		}
 		
-		public Vector3 MousePosToGridPos(Vector3 mousePos, float level, bool forEditor)
+		public Vector3 MousePosToGridPos(Vector3 mousePos)
 		{
-			Vector3 newPos = MousePosToWorldPos (mousePos, level, forEditor);
-			
-			//if (forEditor) 
-			{
-				newPos = WorldPosToGridPos(newPos);
-			}
+			Vector3 newPos = MousePosToWorldPos (mousePos);
+			newPos = WorldPosToGridPos(newPos);
 			return newPos;
 		}
 

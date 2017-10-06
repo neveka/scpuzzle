@@ -8,9 +8,11 @@ namespace SCPuzzle
 	public interface IGridObject
 	{
 		IGrid Grid { get; }
+		GameObject GameObject { get; }
 		Vector3 WorldPos{ get; set; }
 		//Vector3 Dir{get; set;}
 		Vector3 GridPos{ get; set; }
+		void Destroy ();
 
 		void SnapToGrid();
 		void SnapToAxis();

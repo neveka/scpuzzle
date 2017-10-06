@@ -9,6 +9,14 @@ namespace SCPuzzle
 	{
 		List<Vector3> _points = new List<Vector3>();
 
+		public MovingPath CreatePath(Vector3 from, Vector3 to, float speed)
+		{
+			_points.Clear();
+			_points.Add(from);
+			_points.Add(to);
+			return new MovingPath (_points.ToArray(), speed);
+		}
+
 		public MovingPath FindPath(IGridObject goThis, Vector3 endPoint, float speed)
 		{
 			if (Find (goThis, endPoint, ref speed)) 
@@ -25,8 +33,8 @@ namespace SCPuzzle
 			_points.Insert (0, endPoint);
 			while(endPoint != goThis.GridPos)
 			{
-				PassableObject endObject = grid.GetFromCell<PassableObject>(endPoint+Vector3.down);
-				endPoint = endObject.PrevPos+Vector3.up;
+				PassableObject endObject = grid.GetFromCell<PassableObject>(endPoint/*+Vector3.down*/);
+				endPoint = endObject.PrevPos/*+Vector3.up*/;
 				if(_points[0].y != endPoint.y)
 				{
 					Vector3 midPoint = _points[0].y<endPoint.y?_points[0]:endPoint;

@@ -5,32 +5,26 @@ using System;
 
 namespace SCPuzzle
 {
-	public class MovingObject : MonoBehaviour
+	public class MovingObject : Property
 	{
-		public float speed = 1;
+		public float speed = 200;
 		protected MovingPath _path;
-		protected IGridObject _gridObject;
 		protected Vector3 _oldDir;
 		protected Action _onPathComplete;
 		public Func<MovingObject, bool> onInteract;
 		public Action onWait;
 
 		protected bool _waits;
+		private CoroutineStarter _coroutineStarter;
 
 		//protected SpriteChanger _spriteChanger;
 
-		protected virtual void Awake()
-		{
-			_gridObject = GetComponent<IGridObject> ();
-			//_spriteChanger = GetComponentInChildren<SpriteChanger> ();
+		public MovingObject(IGridObject gridObject, CoroutineStarter coroutineStarter):base(gridObject)
+		{ 
+			_coroutineStarter = coroutineStarter;
 		}
 
-		public IGridObject GridObject
-		{
-			get{ return _gridObject; }
-		}
-
-		public bool StartMoveToNear(int minPathLength, int pathLength, out PassableObject selection, Func<PassableObject, bool> isCellOk, Action onPathComplete)
+		/*public bool StartMoveToNear(int minPathLength, int pathLength, out PassableObject selection, Func<PassableObject, bool> isCellOk, Action onPathComplete)
 		{
 			PassableObject underCell = _gridObject.Grid.GetFromCell<PassableObject>(_gridObject.GridPos+Vector3.down);
 			PassableObject reachableCell = null;
@@ -48,16 +42,18 @@ namespace SCPuzzle
 				return false;
 			}
 			return StartMovingTo(selection.GridObject.GridPos+Vector3.up, onPathComplete);
-		}
+		}*/
 
-		bool StartMovingTo (Vector3 endPoint, Action onPathComplete)
+		public bool StartMovingTo (Vector3 endPoint, Action onPathComplete)
 		{
 			_onPathComplete = onPathComplete;
 			if(IsMoving()||endPoint == _gridObject.GridPos) 
 			{
 				return false;
 			}
-			_path = _gridObject.Grid.Utils.PathFinder.FindPath (_gridObject, endPoint, speed);
+			_path = _gridObject.Grid.Utils.PathFinder.CreatePath (
+				_gridObject.Grid.Utils.GridPosToWorldPos(_gridObject.GridPos), 
+				_gridObject.Grid.Utils.GridPosToWorldPos(endPoint), speed);//FindPath (_gridObject, endPoint, speed);
 			if(_path != null)
 			{
 
@@ -66,10 +62,10 @@ namespace SCPuzzle
 			return false;
 		}
 
-		public void StartMovingFromTo(Vector3 fromPos, Vector3 toPos)
+		/*public void StartMovingFromTo(Vector3 fromPos, Vector3 toPos)
 		{
 			_path = new MovingPath (new Vector3[]{fromPos, toPos}, speed);
-		}
+		}*/
 
 		public bool IsMoving()
 		{
@@ -99,7 +95,7 @@ namespace SCPuzzle
 			_waits = false;
 		}
 
-		protected virtual void Update()
+		public void Update()
 		{
 			_waits = false;
 			if (_path != null) 
@@ -116,7 +112,7 @@ namespace SCPuzzle
 					if(_gridObject.GridPos != newGridPos)
 					{
 						MovingObject other = _gridObject.Grid.FindFromCell<MovingObject>(newGridPos);
-						if(other && other != this && other._gridObject.GridPos == newGridPos)
+						if(other!=null && other != this && other._gridObject.GridPos == newGridPos)
 						{
 							if(onInteract!=null && onInteract(other))
 								return;
@@ -143,11 +139,13 @@ namespace SCPuzzle
 			}	
 		}
 
-		protected virtual void OnDrawGizmos() 
+
+
+		/*protected virtual void OnDrawGizmos() 
 		{
 			Gizmos.color = Color.red;
 			if(_path!=null)
 				Gizmos.DrawLine (_gridObject.Grid.Utils.GridPosToWorldPos(_path.GetTargetPosition())+Vector3.down*2, transform.position+Vector3.down);
-		}
+		}*/
 	}
 }
