@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SCPuzzle
 {
@@ -11,10 +12,8 @@ namespace SCPuzzle
 		private CoroutineStarter _coroutineStarter;
 
 		private Canvas _canvas;
-		private GameObject _allyGameObjectTemplate;
-		private GameObject _blockGameObjectTemplate;
-		private GameObject _enemyGameObjectTemplate;
-		private GameObject _effectGameObjectTemplate;
+		private Dictionary<string, GameObject> _gameObjects = new Dictionary<string, GameObject> ();
+		private Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite> ();
 
 		public HeroesSpawner(IGrid grid, CoroutineStarter coroutineStarter)
 		{
@@ -22,32 +21,44 @@ namespace SCPuzzle
 			_coroutineStarter = coroutineStarter;
 
 			_canvas = GameObject.FindObjectOfType<Canvas> ();
-			_allyGameObjectTemplate = Resources.Load<GameObject> ("Ally");
-			_blockGameObjectTemplate = Resources.Load<GameObject> ("Block");
-			_enemyGameObjectTemplate = Resources.Load<GameObject> ("Enemy");
-			_effectGameObjectTemplate = Resources.Load<GameObject> ("Effect");
-
+			_gameObjects["Ally"] = Resources.Load<GameObject> ("Ally");
+			_gameObjects["Block"] = Resources.Load<GameObject> ("Block");
+			_gameObjects["Enemy"] = Resources.Load<GameObject> ("Enemy");
+			_gameObjects["Effect"] = Resources.Load<GameObject> ("Effect");
+			_sprites ["annunaki"] = Resources.Load<Sprite> ("Heroes/annunaki");
+			_sprites ["hierarchy"] = Resources.Load<Sprite> ("Heroes/hierarchy");
+			_sprites ["terran"] = Resources.Load<Sprite> ("Heroes/terran");
+			_sprites ["commander-bot-2"] = Resources.Load<Sprite> ("Heroes/commander-bot-2");
+			_sprites ["sp01_mercenary"] = Resources.Load<Sprite> ("Heroes/sp01_mercenary");
 			Spawn ();
 		}
 
 		public void Spawn()
 		{
-
 			for (int i = 0; i < 25; i++) 
 			{
 				bool ally = i == 10 || i == 2 || i == 18;
 				bool block = i == 4 || i == 13 || i == 22;
-				
-				GridObject gridObject = Spawn (new Vector3 (i % 5, i / 5, 0), ally?_allyGameObjectTemplate:(block?_blockGameObjectTemplate:_enemyGameObjectTemplate));
 
-				if (ally) 
-				{
+				string prefabName = ally ? "Ally" : (block ? "Block" : "Enemy");
+				
+				GridObject gridObject = Spawn (new Vector3 (i % 5, i / 5, 0), _gameObjects[prefabName]);
+
+				if (ally) {
 					AllyObject.AttackType attackType = i == 10 ? AllyObject.AttackType.round : (i == 2 ? AllyObject.AttackType.line : AllyObject.AttackType.three_random);
-					gridObject.AddProperty (new AllyObject (gridObject, attackType, (Vector3 pos)=>ShowDamageEffect(pos)));
+					string spriteName = i == 10 ? "annunaki" : (i == 2 ? "hierarchy" : "terran");
+
+					gridObject.AddProperty (new AllyObject (gridObject, attackType, (Vector3 pos) => ShowDamageEnemyEffect (pos)));
 					gridObject.AddProperty (new SelectableWithArrows (gridObject));
+					gridObject.AddProperty (new ImageChanger (gridObject, _sprites [spriteName]));
+				} 
+				else if (!block) 
+				{
+					int idx = UnityEngine.Random.Range (0, 2);
+						
+					gridObject.AddProperty (new EnemyObject (gridObject, idx==0?3:4, (Vector3 pos) => ShowDamagePlayerEffect (pos)));
+					gridObject.AddProperty (new ImageChanger (gridObject, _sprites [idx==0?"commander-bot-2":"sp01_mercenary"]));
 				}
-				else if (!block)
-					gridObject.AddProperty (new EnemyObject (gridObject));
 			}
 		}
 
@@ -65,18 +76,46 @@ namespace SCPuzzle
 			return gridObject;
 		}
 
-		void ShowDamageEffect(Vector3 gridPos)
+		void ShowDamageEnemyEffect(Vector3 gridPos)
 		{
-			GameObject effect = GameObject.Instantiate (_effectGameObjectTemplate);
-			effect.transform.SetParent(_canvas.transform);
-			effect.transform.localPosition = _grid.Utils.GridPosToWorldPos(gridPos);
-			_coroutineStarter.StartCoroutine (WaitAndHide (effect));
+			_coroutineStarter.StartCoroutine (ShowDamageEffectWaitAndHide (gridPos));
 		}
 
-		IEnumerator WaitAndHide(GameObject effect)
+		IEnumerator ShowDamageEffectWaitAndHide(Vector3 gridPos)
 		{
+			GameObject effect = GameObject.Instantiate (_gameObjects["Effect"]);
+			effect.transform.SetParent(_canvas.transform);
+			effect.transform.localPosition = _grid.Utils.GridPosToWorldPos(gridPos);
+			effect.transform.localScale = Vector3.one;
 			yield return new WaitForSeconds(0.3f);
 			GameObject.DestroyImmediate (effect);
+		}
+
+		void ShowDamagePlayerEffect(Vector3 gridPos)
+		{
+			_coroutineStarter.StartCoroutine (ShowDamageEffectFlyAndHide (gridPos));
+		}
+
+		IEnumerator ShowDamageEffectFlyAndHide(Vector3 gridPos)
+		{
+			yield return new WaitForSeconds(0.5f);
+			Vector3 fromPos = _grid.Utils.GridPosToWorldPos(gridPos);
+			GameObject effect = GameObject.Instantiate (_gameObjects["Effect"]);
+			effect.transform.SetParent(_canvas.transform);
+			effect.transform.localPosition = fromPos;
+			effect.transform.localScale = Vector3.one*0.3f;
+
+			GameObject player = GameObject.Find ("PlayerHealthBar");
+			float d = 1f;
+			while (d >= 0) 
+			{
+				d -= Time.deltaTime;
+				effect.transform.localPosition = Vector3.Lerp (fromPos, player.transform.localPosition, 1-d);
+				yield return null;
+			}
+			GameObject.DestroyImmediate (effect);
+
+			player.GetComponent<Image> ().fillAmount -= 0.01f;
 		}
 
 		void OnDestroyGridObject(Vector3 gridPos)
@@ -87,8 +126,13 @@ namespace SCPuzzle
 			{
 				spawnPos += Vector3.up;
 			}
-			GridObject enemy = Spawn (spawnPos, _enemyGameObjectTemplate);
-			enemy.AddProperty( new EnemyObject(enemy));
+			GridObject gridObject = Spawn (spawnPos, _gameObjects["Enemy"]);
+
+			int idx = UnityEngine.Random.Range (0, 2);
+
+			gridObject.AddProperty (new EnemyObject (gridObject, idx==0?3:4, (Vector3 pos) => ShowDamagePlayerEffect (pos)));
+			gridObject.AddProperty (new ImageChanger (gridObject, _sprites [idx==0?"commander-bot-2":"sp01_mercenary"]));
+
 			_coroutineStarter.StartCoroutine (waitAndMove(gridPos));
 		}
 

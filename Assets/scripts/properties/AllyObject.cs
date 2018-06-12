@@ -51,14 +51,14 @@ namespace SCPuzzle
 					break;
 				case AttackType.line:
 					Vector3 dir = _gridPosOnStartMove - _gridObject.GridPos;
-					Vector3 currentPos = _gridObject.GridPos;
+					Vector3 currentPos = _gridPosOnStartMove;
 					while(_gridObject.Grid.Utils.IsInside(currentPos))
 					{
-						currentPos += dir;
 						EnemyObject e = _gridObject.Grid.GetFromCell<EnemyObject> (currentPos);
 						_showEffect(currentPos);
 						if (e != null)
 							e.Health -= _attackForse;
+						currentPos += dir;
 					}
 					break;
 				case AttackType.three_random:

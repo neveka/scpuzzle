@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,12 +10,16 @@ namespace SCPuzzle
 	{
 		private Image _healthBar;
 		private Text _initiativeText;
+
 		private float _health;
 		private int _initiative;
+		private int _maxInitiative;
+		private Action<Vector3> _damagePlayerHealth;
 
-		public EnemyObject(IGridObject gridObject):base(gridObject)
+		public EnemyObject(IGridObject gridObject, int maxInitiative, Action<Vector3> damagePlayerHealth):base(gridObject)
 		{
-			
+			_maxInitiative = maxInitiative;
+			_damagePlayerHealth = damagePlayerHealth;
 		}
 
 		public int Initiative
@@ -23,15 +28,12 @@ namespace SCPuzzle
 			set{ 
 				if (value < 0) 
 				{
-					_initiative = Random.Range (5, 20);
+					_initiative = _maxInitiative;
+					_damagePlayerHealth(GridObject.GridPos);
 				}
 				else
 				{
 					_initiative = value; 
-					if (_initiative == 0)
-					{
-						GameObject.Find ("PlayerHealthBar").GetComponent<Image> ().fillAmount -= 0.1f;
-					}
 				}
 					
 				_initiativeText.text = _initiative.ToString (); 
@@ -58,7 +60,7 @@ namespace SCPuzzle
 			_healthBar = System.Array.Find (images, i => i.name == "HealthBar");
 			_initiativeText =  _gridObject.GameObject.GetComponentInChildren<Text> ();
 			Health = 1;
-			Initiative = Random.Range (5, 20);
+			Initiative = _maxInitiative;
 		}
 	}
 }
